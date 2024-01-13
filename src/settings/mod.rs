@@ -6,10 +6,10 @@ use mouse::MouseSettings;
 use serde::{Deserialize, Serialize};
 use window::WindowSettings;
 
-const SETTINGS_PATH: &str = "settings.yaml";
+const SETTINGS_PATH: &str = "./settings.yaml";
 
 /// Stores all settings that can be configured from userspace
-#[derive(Resource, Serialize, Deserialize, Default)]
+#[derive(Resource, Serialize, Deserialize, Default, Clone)]
 pub struct AllSettings {
     window: WindowSettings,
     mouse: MouseSettings,
@@ -56,13 +56,21 @@ pub fn load_settings_resource(mut commands: Commands) {
 }
 
 pub trait Settings {
+    /// Overwrites the AllSettings resource with new values
+    fn save_to_resource(&self, world: &mut World);
+
+    /// Applies the new settings (like changing Window proporties, etc...)
     fn apply(&self, world: &mut World);
 }
 
 impl Settings for AllSettings {
+    fn save_to_resource(&self, world: &mut World) {
+        self.window.save_to_resource(world);
+        self.mouse.save_to_resource(world);
+    }
+
     fn apply(&self, world: &mut World) {
         self.window.apply(world);
         self.mouse.apply(world);
-        let _err = self.save();
     }
 }
