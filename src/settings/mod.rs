@@ -1,30 +1,22 @@
+mod mouse;
+mod window;
+
 use bevy::prelude::*;
+use mouse::MouseSettings;
 use serde::{Deserialize, Serialize};
+use window::WindowSettings;
 
 const SETTINGS_PATH: &str = "settings.yaml";
 
-#[derive(Serialize, Deserialize, Default)]
-enum WindowMode {
-    #[default]
-    Fullscreen,
-    Windowed,
-    WindowedNoTitle,
-}
-
+/// Stores all settings that can be configured from userspace
 #[derive(Resource, Serialize, Deserialize, Default)]
-pub struct Settings {
-    // Window
-    resolution_x: usize,
-    resolution_y: usize,
-    window_mode: WindowMode,
-    vsync: bool,
-    // Mouse
-    mouse_sensivity_x: f32,
-    mouse_sensivity_y: f32,
+pub struct AllSettings {
+    window: WindowSettings,
+    mouse: MouseSettings,
 }
 
-impl Settings {
-    /// Serializes Settings in YAML and writes them to the settings file
+impl AllSettings {
+    /// Serializes AllSettings to YAML and writes them to the settings file
     pub fn save(&self) -> Result<(), Box<dyn std::error::Error>> {
         let settings_file = std::fs::OpenOptions::new()
             .read(true)
@@ -35,14 +27,14 @@ impl Settings {
         Ok(())
     }
 
-    /// Returns the settings read from the settings file.
+    /// Returns the AllSettings read from the settings file.
     pub fn load() -> Result<Self, Box<dyn std::error::Error>> {
         let settings_file = std::fs::File::open(SETTINGS_PATH)?;
         let settings = serde_yaml::from_reader(settings_file)?;
         Ok(settings)
     }
 
-    /// Get Settings from file or use defaults, saving them
+    /// Get AllSettings from file or use defaults, saving them
     pub fn get() -> Self {
         match Self::load() {
             Ok(settings) => settings,
@@ -54,5 +46,23 @@ impl Settings {
                 defaults
             }
         }
+    }
+}
+
+/// Adds the Settings resource
+pub fn load_settings_resource(mut commands: Commands) {
+    let settings = AllSettings::get();
+    commands.insert_resource(settings);
+}
+
+pub trait Settings {
+    fn apply(&self, world: &mut World);
+}
+
+impl Settings for AllSettings {
+    fn apply(&self, world: &mut World) {
+        self.window.apply(world);
+        self.mouse.apply(world);
+        let _err = self.save();
     }
 }
